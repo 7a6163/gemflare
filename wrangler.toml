@@ -1,0 +1,20 @@
+name = "gemflare"
+main = "src/index.ts"
+compatibility_date = "2023-01-01"
+
+# KV Namespace for storing gem metadata and user credentials
+kv_namespaces = [
+  { binding = "GEMFLARE_KV", id = "your-kv-namespace-id", preview_id = "your-preview-kv-namespace-id" }
+]
+
+# R2 Bucket for storing gem files
+[[r2_buckets]]
+binding = "GEMFLARE_BUCKET"
+bucket_name = "gemflare-gems"
+preview_bucket_name = "gemflare-gems-dev"
+
+# Environment variables
+[vars]
+ADMIN_USERNAME = "admin"
+# Default password: admin123 (change this in production!)
+ADMIN_PASSWORD_HASH = "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9"
