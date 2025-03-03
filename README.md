@@ -42,19 +42,30 @@ npx wrangler r2 bucket create gemflare-gems
 npx wrangler r2 bucket create gemflare-gems-dev
 ```
 
-4. Update the `wrangler.toml` file with your KV namespace IDs and R2 bucket names.
+4. Create a `.dev.vars` file based on the example:
 
-5. Set admin password:
+```bash
+cp .dev.vars.example .dev.vars
+```
+
+Then edit `.dev.vars` with your actual values:
+- Update `GEMFLARE_KV_ID` and `GEMFLARE_KV_PREVIEW_ID` with your KV namespace IDs
+- Update `GEMFLARE_BUCKET_NAME` and `GEMFLARE_PREVIEW_BUCKET_NAME` with your R2 bucket names
+- Set `ADMIN_PASSWORD_HASH` to the SHA-256 hash of your admin password
+
+You can generate a password hash with:
+
+```bash
+echo -n "your-password" | shasum -a 256 | cut -d ' ' -f 1
+```
+
+5. For production deployment, set your secrets:
 
 ```bash
 npx wrangler secret put ADMIN_PASSWORD_HASH
 ```
 
-When prompted, enter the SHA-256 hash of your admin password. You can generate this with:
-
-```bash
-echo -n "your-password" | shasum -a 256 | cut -d ' ' -f 1
-```
+When prompted, enter the SHA-256 hash of your admin password.
 
 ### Development
 

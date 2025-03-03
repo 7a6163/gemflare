@@ -9,25 +9,35 @@
 	"compatibility_date": "2025-02-24",
 	"observability": {
 		"enabled": true
-	}
-  /**
-   * Smart Placement
-   * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
-   */
-  // "placement": { "mode": "smart" },
+	},
 
   /**
-   * Bindings
-   * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
-   * databases, object storage, AI inference, real-time communication and more.
-   * https://developers.cloudflare.com/workers/runtime-apis/bindings/
+   * KV Namespace for storing gem metadata and user credentials
    */
+  "kv_namespaces": [
+    {
+      "binding": "GEMFLARE_KV",
+      "id": "${GEMFLARE_KV_ID}",
+      "preview_id": "${GEMFLARE_KV_PREVIEW_ID}"
+    }
+  ],
+
+  /**
+   * R2 Bucket for storing gem files
+   */
+  "r2_buckets": [
+    {
+      "binding": "GEMFLARE_BUCKET",
+      "bucket_name": "${GEMFLARE_BUCKET_NAME}",
+      "preview_bucket_name": "${GEMFLARE_PREVIEW_BUCKET_NAME}"
+    }
+  ],
 
   /**
    * Environment Variables
    * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
    */
-  // "vars": { "MY_VARIABLE": "production_value" },
+
   /**
    * Note: Use secrets to store sensitive data.
    * https://developers.cloudflare.com/workers/configuration/secrets/

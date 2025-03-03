@@ -12,10 +12,7 @@ export interface GemMetadata {
   authors: string[];
   info: string;
   summary: string;
-  requirements: {
-    name: string;
-    version: string;
-  }[];
+  requirements: string[];
   sha: string;
   createdAt: string;
   downloads: number;
