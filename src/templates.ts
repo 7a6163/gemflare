@@ -37,9 +37,15 @@ export const layout = (content: string, isLoggedIn: boolean = false) => html`
 </html>
 `;
 
-export const loginPage = () => layout(html`
+export const loginPage = (errorMessage?: string) => layout(html`
 <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md mt-10">
   <h1 class="text-2xl font-bold mb-6 text-center">Login to GemFlare</h1>
+
+  ${errorMessage ? html`
+    <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+      ${errorMessage}
+    </div>
+  ` : ''}
 
   <form action="/login" method="POST">
     <div class="mb-4">

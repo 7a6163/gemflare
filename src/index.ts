@@ -177,7 +177,8 @@ app.post('/login', async (c) => {
     }
   }
 
-  return c.html(loginPage())
+  // Generic error message for any login failure
+  return c.html(loginPage('Invalid username or password. Please try again.'))
 })
 
 // Logout

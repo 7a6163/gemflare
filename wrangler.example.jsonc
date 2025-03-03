@@ -1,0 +1,43 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "gemflare",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-02-24",
+	"observability": {
+		"enabled": true
+	},
+
+  /**
+   * KV Namespace for storing gem metadata and user credentials
+   */
+  "kv_namespaces": [
+    {
+      "binding": "GEMFLARE_KV",
+      "id": "your-kv-namespace-id-here",
+      "preview_id": "your-preview-kv-namespace-id-here"
+    }
+  ],
+
+  /**
+   * R2 Bucket for storing gem files
+   */
+  "r2_buckets": [
+    {
+      "binding": "GEMFLARE_BUCKET",
+      "bucket_name": "your-r2-bucket-name-here",
+      "preview_bucket_name": "your-preview-r2-bucket-name-here"
+    }
+  ],
+
+  /**
+   * Note: Use secrets to store sensitive data.
+   * https://developers.cloudflare.com/workers/configuration/secrets/
+   * 
+   * Set your admin password hash with:
+   * npx wrangler secret put ADMIN_PASSWORD_HASH
+   */
+}

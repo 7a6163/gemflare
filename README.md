@@ -128,6 +128,22 @@ You'll be prompted for your admin username and password.
 - All gem downloads are tracked
 - Consider adding IP restrictions or additional authentication methods for production use
 
+## Open Source Considerations
+
+If you're planning to make this project open source, consider the following:
+
+1. **Sensitive Information**: The `wrangler.jsonc` file contains your Cloudflare KV namespace IDs and R2 bucket names. Before pushing to a public repository, you might want to:
+   - Create a `wrangler.example.jsonc` with placeholder values
+   - Add your actual `wrangler.jsonc` to `.gitignore`
+   - Document this in your README
+
+2. **Environment Variables**: For sensitive information like passwords, use environment variables or Cloudflare secrets:
+   ```bash
+   npx wrangler secret put ADMIN_PASSWORD_HASH
+   ```
+
+3. **Documentation**: Make sure your README includes clear instructions for other developers to set up their own KV namespaces and R2 buckets.
+
 ## License
 
 MIT

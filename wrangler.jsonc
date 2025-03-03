@@ -17,8 +17,8 @@
   "kv_namespaces": [
     {
       "binding": "GEMFLARE_KV",
-      "id": "${GEMFLARE_KV_ID}",
-      "preview_id": "${GEMFLARE_KV_PREVIEW_ID}"
+      "id": "83ca722790094ba4b7a40b0af6565cd4",
+      "preview_id": "4b999fef3a2447f4b810372a5f562271"
     }
   ],
 
@@ -28,8 +28,8 @@
   "r2_buckets": [
     {
       "binding": "GEMFLARE_BUCKET",
-      "bucket_name": "${GEMFLARE_BUCKET_NAME}",
-      "preview_bucket_name": "${GEMFLARE_PREVIEW_BUCKET_NAME}"
+      "bucket_name": "gemflare-gems",
+      "preview_bucket_name": "gemflare-gems-dev"
     }
   ],
 
