@@ -119,6 +119,9 @@ api.get('/gems/:file', async (c) => {
 app.get('/', async (c) => {
   const token = getCookie(c, 'auth_token')
   const isLoggedIn = !!token
+  
+  // Get the current worker URL
+  const currentUrl = new URL(c.req.url).origin
 
   return c.html(layout(html`
     <div class="bg-white p-6 rounded-lg shadow-md">
@@ -128,13 +131,13 @@ app.get('/', async (c) => {
         <div class="bg-red-50 p-4 rounded-lg border border-red-200">
           <h2 class="text-lg font-semibold mb-2">Using with Bundler</h2>
           <p class="mb-2">Add this to your Gemfile:</p>
-          <pre class="bg-gray-100 p-3 rounded">source "https://your-gemflare-url.workers.dev"</pre>
+          <pre class="bg-gray-100 p-3 rounded">source "${currentUrl}"</pre>
         </div>
 
         <div class="bg-red-50 p-4 rounded-lg border border-red-200">
           <h2 class="text-lg font-semibold mb-2">Using with RubyGems</h2>
           <p class="mb-2">Configure your gem sources:</p>
-          <pre class="bg-gray-100 p-3 rounded">gem sources --add https://your-gemflare-url.workers.dev</pre>
+          <pre class="bg-gray-100 p-3 rounded">gem sources --add ${currentUrl}</pre>
         </div>
       </div>
 
@@ -201,12 +204,15 @@ app.get('/gems', async (c) => {
   const isLoggedIn = !!token;
   console.log('User is logged in:', isLoggedIn);
 
+  // Get the current worker URL
+  const currentUrl = new URL(c.req.url).origin
+
   try {
     console.log('Fetching all gems from KV');
     const gems = await getAllGems(c.env.GEMFLARE_KV);
-    console.log('Retrieved gems:', gems.length);
+    console.log(`Found ${gems.length} gems`);
 
-    return c.html(gemsListPage(gems, isLoggedIn));
+    return c.html(gemsListPage(gems, isLoggedIn, currentUrl));
   } catch (error) {
     console.error('Error fetching gems:', error);
     return c.html(errorPage(`Error fetching gems: ${error.message}`, isLoggedIn));
@@ -221,11 +227,14 @@ app.get('/gems/:name', async (c) => {
   const name = c.req.param('name')
   const gem = await getGem(c.env.GEMFLARE_KV, name)
 
+  // Get the current worker URL
+  const currentUrl = new URL(c.req.url).origin
+
   if (!gem) {
     return c.html(errorPage('Gem not found', isLoggedIn))
   }
 
-  return c.html(gemDetailPage(gem, isLoggedIn))
+  return c.html(gemDetailPage(gem, isLoggedIn, currentUrl))
 })
 
 // View specific gem version details (web UI)
@@ -240,11 +249,14 @@ app.get('/gems/:name/:version', async (c) => {
 
   const gem = await getGemVersion(c.env.GEMFLARE_KV, name, version)
 
+  // Get the current worker URL
+  const currentUrl = new URL(c.req.url).origin
+
   if (!gem) {
     return c.html(errorPage(`Gem ${name} version ${version} not found`, isLoggedIn))
   }
 
-  return c.html(gemDetailPage(gem, isLoggedIn))
+  return c.html(gemDetailPage(gem, isLoggedIn, currentUrl))
 })
 
 // Upload page (web UI)

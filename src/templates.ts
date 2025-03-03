@@ -63,13 +63,13 @@ export const loginPage = (errorMessage?: string) => layout(html`
 </div>
 `, false);
 
-export const gemsListPage = (gems: GemMetadata[], isLoggedIn: boolean = false) => layout(html`
+export const gemsListPage = (gems: GemMetadata[], isLoggedIn: boolean = false, currentUrl?: string) => layout(html`
 <div class="bg-white p-6 rounded-lg shadow-md">
   <h1 class="text-2xl font-bold mb-6">Available Gems</h1>
 
   <div class="mb-6">
     <p>To use this gem server with Bundler, add this to your Gemfile:</p>
-    <pre class="bg-gray-100 p-3 rounded mt-2">source "https://your-gemflare-url.workers.dev"</pre>
+    <pre class="bg-gray-100 p-3 rounded mt-2">source "${currentUrl || 'https://your-gemflare-url.workers.dev'}"</pre>
   </div>
 
   <table class="min-w-full bg-white">
@@ -95,7 +95,7 @@ export const gemsListPage = (gems: GemMetadata[], isLoggedIn: boolean = false) =
 </div>
 `, isLoggedIn);
 
-export const gemDetailPage = (gem: GemMetadata, isLoggedIn: boolean = false) => layout(html`
+export const gemDetailPage = (gem: GemMetadata, isLoggedIn: boolean = false, currentUrl?: string) => layout(html`
 <div class="bg-white p-6 rounded-lg shadow-md">
   <h1 class="text-2xl font-bold mb-2">${gem.name} (${gem.version})</h1>
   <p class="text-gray-600 mb-6">${gem.summary}</p>
@@ -115,10 +115,11 @@ export const gemDetailPage = (gem: GemMetadata, isLoggedIn: boolean = false) => 
     <div>
       <h2 class="text-lg font-semibold mb-2">Installation</h2>
       <p>Add this to your Gemfile:</p>
-      <pre class="bg-gray-100 p-3 rounded mt-2">gem "${gem.name}", "${gem.version}"</pre>
+      <pre class="bg-gray-100 p-3 rounded mt-2">source "${currentUrl || 'https://your-gemflare-url.workers.dev'}"
+gem "${gem.name}", "${gem.version}"</pre>
 
       <p class="mt-4">Or install directly:</p>
-      <pre class="bg-gray-100 p-3 rounded mt-2">gem install ${gem.name} -v ${gem.version}</pre>
+      <pre class="bg-gray-100 p-3 rounded mt-2">gem install ${gem.name} -v ${gem.version} --source ${currentUrl || 'https://your-gemflare-url.workers.dev'}</pre>
     </div>
   </div>
 
