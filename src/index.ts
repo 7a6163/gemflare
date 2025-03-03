@@ -198,7 +198,7 @@ app.get('/gems', async (c) => {
   const isLoggedIn = !!token
   
   const gems = await getAllGems(c.env.GEMFLARE_KV)
-  return c.html(gemsListPage(gems))
+  return c.html(gemsListPage(gems, isLoggedIn)) // Add isLoggedIn parameter
 })
 
 // View gem details (web UI)
@@ -210,10 +210,10 @@ app.get('/gems/:name', async (c) => {
   const gem = await getGem(c.env.GEMFLARE_KV, name)
   
   if (!gem) {
-    return c.html(errorPage('Gem not found'))
+    return c.html(errorPage('Gem not found', isLoggedIn))
   }
   
-  return c.html(gemDetailPage(gem))
+  return c.html(gemDetailPage(gem, isLoggedIn)) // Add isLoggedIn parameter
 })
 
 // Upload page (web UI)
@@ -228,7 +228,7 @@ app.post('/upload', jwtAuth, async (c) => {
     const gemFile = formData.get('gemfile') as File
     
     if (!gemFile) {
-      return c.html(errorPage('No gem file provided'))
+      return c.html(errorPage('No gem file provided', true))
     }
     
     const buffer = await gemFile.arrayBuffer()
@@ -243,7 +243,7 @@ app.post('/upload', jwtAuth, async (c) => {
     
     return c.redirect('/gems')
   } catch (error) {
-    return c.html(errorPage(error.message))
+    return c.html(errorPage(error.message, true))
   }
 })
 

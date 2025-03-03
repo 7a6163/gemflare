@@ -57,7 +57,7 @@ export const loginPage = () => layout(html`
 </div>
 `, false);
 
-export const gemsListPage = (gems: GemMetadata[]) => layout(html`
+export const gemsListPage = (gems: GemMetadata[], isLoggedIn: boolean = false) => layout(html`
 <div class="bg-white p-6 rounded-lg shadow-md">
   <h1 class="text-2xl font-bold mb-6">Available Gems</h1>
   
@@ -87,9 +87,9 @@ export const gemsListPage = (gems: GemMetadata[]) => layout(html`
     </tbody>
   </table>
 </div>
-`, true);
+`, isLoggedIn);
 
-export const gemDetailPage = (gem: GemMetadata) => layout(html`
+export const gemDetailPage = (gem: GemMetadata, isLoggedIn: boolean = false) => layout(html`
 <div class="bg-white p-6 rounded-lg shadow-md">
   <h1 class="text-2xl font-bold mb-2">${gem.name} (${gem.version})</h1>
   <p class="text-gray-600 mb-6">${gem.summary}</p>
@@ -134,33 +134,33 @@ export const gemDetailPage = (gem: GemMetadata) => layout(html`
     </div>
   ` : ''}
 </div>
-`, true);
+`, isLoggedIn);
 
 export const uploadPage = () => layout(html`
 <div class="bg-white p-6 rounded-lg shadow-md">
   <h1 class="text-2xl font-bold mb-6">Upload Gem</h1>
   
-  <form action="/upload" method="POST" enctype="multipart/form-data">
+  <form action="/upload" method="POST" enctype="multipart/form-data" class="mb-6">
     <div class="mb-4">
-      <label class="block text-gray-700 mb-2" for="gemfile">Gem File (.gem)</label>
-      <input class="w-full px-3 py-2 border border-gray-300 rounded" type="file" id="gemfile" name="gemfile" accept=".gem" required>
+      <label class="block text-gray-700 mb-2" for="gemFile">Gem File (.gem)</label>
+      <input class="w-full px-3 py-2 border border-gray-300 rounded" type="file" id="gemFile" name="gemFile" accept=".gem" required>
     </div>
     
-    <button class="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700" type="submit">Upload Gem</button>
+    <button class="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700" type="submit">Upload</button>
   </form>
   
-  <div class="mt-8">
-    <h2 class="text-lg font-semibold mb-2">Command Line Upload</h2>
-    <p>You can also upload gems using the gem command:</p>
+  <div>
+    <h2 class="text-lg font-semibold mb-2">Using with gem command</h2>
+    <p class="mb-2">You can also push gems using the gem command:</p>
     <pre class="bg-gray-100 p-3 rounded mt-2">gem push your-gem-0.1.0.gem --host https://your-gemflare-url.workers.dev</pre>
   </div>
 </div>
 `, true);
 
-export const errorPage = (message: string) => layout(html`
+export const errorPage = (message: string, isLoggedIn: boolean = false) => layout(html`
 <div class="bg-white p-6 rounded-lg shadow-md">
-  <h1 class="text-2xl font-bold mb-6 text-red-600">Error</h1>
+  <h1 class="text-2xl font-bold mb-4 text-red-600">Error</h1>
   <p>${message}</p>
   <a href="/" class="inline-block mt-4 bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700">Back to Home</a>
 </div>
-`, false);
+`, isLoggedIn);
