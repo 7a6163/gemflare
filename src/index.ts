@@ -9,7 +9,16 @@ import {
   incrementDownloads,
   verifyPassword,
   hashPassword,
-  extractGemMetadata
+  extractGemMetadata,
+  generateSpecsGz,
+  generateEmptySpecsGz,
+  generateValidSpecsGz,
+  generateInfoContent,
+  generateNamesContent,
+  generateVersionsContent,
+  updateSpecsIndexInR2,
+  getSpecsIndexFromR2,
+  generateDependenciesResponse
 } from './utils'
 import {
   layout,
@@ -59,61 +68,161 @@ api.get('/api/v1/gems/:name/:version', async (c) => {
 })
 
 // Upload a gem (requires authentication)
-api.post('/api/v1/gems', basicAuth, async (c) => {
+api.post('/api/v1/gems', async (c) => {
   try {
-    const formData = await c.req.formData()
-    const gemFile = formData.get('gem') as File
-
-    if (!gemFile) {
-      return c.json({ error: 'No gem file provided' }, 400)
+    // Check authentication
+    const authHeader = c.req.header('Authorization')
+    if (!authHeader || !authHeader.startsWith('Basic ')) {
+      return new Response('Unauthorized', { status: 401 })
     }
 
-    const buffer = await gemFile.arrayBuffer()
-    const metadata = await extractGemMetadata(buffer)
+    const base64Credentials = authHeader.split(' ')[1]
+    const credentials = atob(base64Credentials)
+    const [username, password] = credentials.split(':')
 
-    // Store gem file in R2
-    const key = `${metadata.name}-${metadata.version}.gem`
-    await c.env.GEMFLARE_BUCKET.put(key, buffer)
+    // Verify credentials
+    const adminUsername = c.env.ADMIN_USERNAME || 'admin'
+    const adminPasswordHash = c.env.ADMIN_PASSWORD_HASH || ''
 
-    // Store metadata in KV
+    if (username !== adminUsername || !await verifyPassword(password, adminPasswordHash)) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+
+    // Get the gem file from the request
+    const formData = await c.req.formData()
+    const gemFile = formData.get('file') as File
+
+    if (!gemFile) {
+      return new Response('No gem file provided', { status: 400 })
+    }
+
+    // Extract metadata from the gem file
+    const gemBuffer = await gemFile.arrayBuffer()
+    const metadata = await extractGemMetadata(gemBuffer)
+
+    if (!metadata) {
+      return new Response('Invalid gem file', { status: 400 })
+    }
+
+    // Save the gem to R2
+    const objectKey = `gems/${metadata.name}-${metadata.version}.gem`
+    console.log('Storing gem file in R2 with key:', objectKey);
+    try {
+      await c.env.GEMFLARE_BUCKET.put(objectKey, gemBuffer);
+      console.log('Gem file stored in R2 successfully');
+    } catch (error) {
+      console.error('Failed to store gem file:', error);
+      return new Response(JSON.stringify({
+        success: false,
+        message: 'Failed to store gem file: ' + (error instanceof Error ? error.message : String(error))
+      }), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+
+    // Save metadata to KV
     await saveGem(c.env.GEMFLARE_KV, metadata)
+    
+    // Update specs index files in R2
+    try {
+      console.log('Updating specs index files after gem upload');
+      const allGems = await getAllGems(c.env.GEMFLARE_KV);
+      await updateSpecsIndexInR2(c.env.GEMFLARE_BUCKET, allGems);
+      console.log('Specs index files updated successfully');
+    } catch (updateError) {
+      console.error('Error updating specs index:', updateError);
+      // Continue with the response even if updating specs fails
+    }
 
-    return c.json({ success: true })
+    return new Response(JSON.stringify({
+      success: true,
+      message: `Gem ${metadata.name} (${metadata.version}) uploaded successfully`
+    }), {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
   } catch (error) {
-    return c.json({ error: error.message }, 500)
+    console.error('Error uploading gem:', error)
+    return new Response(JSON.stringify({
+      success: false,
+      message: 'Error uploading gem'
+    }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
   }
 })
 
-// Download a gem
+// Download a gem file
 api.get('/gems/:file', async (c) => {
   const filename = c.req.param('file')
 
-  // Extract gem name and version from filename
-  const match = filename.match(/^(.+)-([^-]+)\.gem$/)
-  if (!match) {
-    return c.json({ error: 'Invalid gem filename' }, 400)
+  if (!filename.endsWith('.gem')) {
+    return c.notFound()
   }
 
-  const [_, name, version] = match
+  try {
+    console.log(`Downloading gem file: ${filename}`)
+    const object = await c.env.GEMFLARE_BUCKET.get(`gems/${filename}`)
 
-  // Get the file from R2
-  const object = await c.env.GEMFLARE_BUCKET.get(filename)
-
-  if (!object) {
-    return c.json({ error: 'Gem not found' }, 404)
-  }
-
-  // Increment download count
-  await incrementDownloads(c.env.GEMFLARE_KV, name, version)
-
-  // Return the gem file
-  return new Response(object.body, {
-    headers: {
-      'Content-Type': 'application/octet-stream',
-      'Content-Disposition': `attachment; filename="${filename}"`
+    if (!object) {
+      return c.notFound()
     }
-  })
+
+    return new Response(object.body, {
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'Content-Disposition': `attachment; filename="${filename}"`
+      }
+    })
+  } catch (error) {
+    console.error(`Error downloading gem: ${error}`)
+    return c.json({ error: 'Error downloading gem' }, 500)
+  }
 })
+
+// Add dependencies endpoint for Bundler compatibility
+app.get('/api/v1/dependencies', async (c) => {
+  try {
+    // Get the gems parameter from the query string
+    const gemsParam = c.req.query('gems');
+    
+    if (!gemsParam) {
+      return new Response('No gems specified', { status: 400 });
+    }
+    
+    console.log(`Dependencies requested for: ${gemsParam}`);
+    
+    // Split the gems parameter by comma
+    const requestedGems = gemsParam.split(',').map(gem => gem.trim());
+    
+    if (requestedGems.length === 0) {
+      return new Response('No gems specified', { status: 400 });
+    }
+    
+    // Get all gems from KV
+    const allGems = await getAllGems(c.env.GEMFLARE_KV);
+    
+    // Generate dependencies response
+    const dependenciesData = await generateDependenciesResponse(allGems, requestedGems);
+    
+    // Return the dependencies data as Marshal format
+    return new Response(dependenciesData, {
+      headers: {
+        'Content-Type': 'application/octet-stream'
+      }
+    });
+  } catch (error) {
+    console.error('Error serving dependencies:', error);
+    return new Response('Error generating dependencies', { status: 500 });
+  }
+});
 
 // Web UI Routes
 app.get('/', async (c) => {
@@ -260,8 +369,16 @@ app.get('/gems/:name/:version', async (c) => {
 })
 
 // Upload page (web UI)
-app.get('/upload', jwtAuth, (c) => {
-  return c.html(uploadPage())
+app.get('/upload', async (c) => {
+  const token = getCookie(c, 'auth_token')
+  if (!token) {
+    return c.redirect('/login')
+  }
+
+  // Get the current worker URL
+  const currentUrl = new URL(c.req.url).origin
+
+  return c.html(uploadPage(currentUrl))
 })
 
 // Upload form submission (web UI)
@@ -315,6 +432,185 @@ app.post('/upload', jwtAuth, async (c) => {
     return c.html(errorPage(error.message, true));
   }
 })
+
+// Add specs.4.8.gz endpoint for RubyGems compatibility
+app.get('/specs.4.8.gz', async (c) => {
+  try {
+    console.log('Serving specs.4.8.gz from R2');
+    
+    // Get specs file from R2
+    const specsGz = await getSpecsIndexFromR2(c.env.GEMFLARE_BUCKET, 'specs.4.8.gz');
+    
+    return new Response(specsGz, {
+      headers: {
+        'Content-Type': 'application/octet-stream'
+      }
+    });
+  } catch (error) {
+    console.error('Error serving specs.4.8.gz:', error);
+    return new Response('Error generating specs', { status: 500 });
+  }
+});
+
+// Add latest_specs.4.8.gz endpoint
+app.get('/latest_specs.4.8.gz', async (c) => {
+  try {
+    console.log('Serving latest_specs.4.8.gz from R2');
+    
+    // Get specs file from R2
+    const specsGz = await getSpecsIndexFromR2(c.env.GEMFLARE_BUCKET, 'latest_specs.4.8.gz');
+    
+    return new Response(specsGz, {
+      headers: {
+        'Content-Type': 'application/octet-stream'
+      }
+    });
+  } catch (error) {
+    console.error('Error serving latest_specs.4.8.gz:', error);
+    return new Response('Error generating specs', { status: 500 });
+  }
+});
+
+// Add prerelease_specs.4.8.gz endpoint
+app.get('/prerelease_specs.4.8.gz', async (c) => {
+  try {
+    console.log('Serving prerelease_specs.4.8.gz from R2');
+    
+    // Get specs file from R2
+    const specsGz = await getSpecsIndexFromR2(c.env.GEMFLARE_BUCKET, 'prerelease_specs.4.8.gz');
+    
+    return new Response(specsGz, {
+      headers: {
+        'Content-Type': 'application/octet-stream'
+      }
+    });
+  } catch (error) {
+    console.error('Error serving prerelease_specs.4.8.gz:', error);
+    return new Response('Error generating specs', { status: 500 });
+  }
+});
+
+// Add Compact Index support
+// https://blog.packagecloud.io/evolution-of-rubygem-index-from-marshal48gz-specs48gz-latest_specs48gz-bundler-api-to-compact-index/
+
+// Compact Index - info endpoint (root)
+app.get('/info', async (c) => {
+  try {
+    console.log('Generating info index');
+    
+    // Return an empty response for the root info endpoint
+    return new Response('', {
+      headers: {
+        'Content-Type': 'text/plain',
+        'ETag': `"${Date.now().toString(16)}"`,
+        'Cache-Control': 'max-age=60'
+      }
+    });
+  } catch (error) {
+    console.error('Error generating info index:', error);
+    return new Response('Error', { status: 500 });
+  }
+});
+
+// Compact Index - info endpoint
+app.get('/info/:name', async (c) => {
+  try {
+    const gemName = c.req.param('name');
+    console.log(`Generating info for ${gemName}`);
+    
+    const content = await generateInfoContent(c.env.GEMFLARE_KV, gemName);
+    
+    return new Response(content, {
+      headers: {
+        'Content-Type': 'text/plain',
+        'ETag': `"${Date.now().toString(16)}"`,
+        'Cache-Control': 'max-age=60'
+      }
+    });
+  } catch (error) {
+    console.error('Error generating info:', error);
+    return new Response('Not Found', { status: 404 });
+  }
+});
+
+// Compact Index - names endpoint
+app.get('/names', async (c) => {
+  try {
+    console.log('Generating names list');
+    
+    const content = await generateNamesContent(c.env.GEMFLARE_KV);
+    
+    return new Response(content, {
+      headers: {
+        'Content-Type': 'text/plain',
+        'ETag': `"${Date.now().toString(16)}"`,
+        'Cache-Control': 'max-age=60'
+      }
+    });
+  } catch (error) {
+    console.error('Error generating names:', error);
+    return new Response('Error generating names', { status: 500 });
+  }
+});
+
+// Compact Index - versions endpoint
+app.get('/versions', async (c) => {
+  try {
+    console.log('Generating versions list');
+    
+    const content = await generateVersionsContent(c.env.GEMFLARE_KV);
+    
+    return new Response(content, {
+      headers: {
+        'Content-Type': 'text/plain',
+        'ETag': `"${Date.now().toString(16)}"`,
+        'Cache-Control': 'max-age=60'
+      }
+    });
+  } catch (error) {
+    console.error('Error generating versions:', error);
+    return new Response('Error generating versions', { status: 500 });
+  }
+});
+
+// Compact Index - root endpoint
+app.get('/api/v1/dependencies', async (c) => {
+  const url = new URL(c.req.url);
+  return c.redirect(`${url.protocol}//${url.host}/info`);
+});
+
+// Admin routes
+const admin = new Hono<{ Bindings: CloudflareBindings }>()
+
+// Admin endpoint to manually update specs index files
+admin.get('/update-specs', jwtAuth, async (c) => {
+  try {
+    console.log('Manually updating specs index files');
+    
+    // Get all gems
+    const allGems = await getAllGems(c.env.GEMFLARE_KV);
+    console.log(`Found ${allGems.length} gems to include in specs`);
+    
+    // Update specs index files
+    await updateSpecsIndexInR2(c.env.GEMFLARE_BUCKET, allGems);
+    
+    return c.json({
+      success: true,
+      message: 'Specs index files updated successfully',
+      gems_count: allGems.length
+    });
+  } catch (error) {
+    console.error('Error updating specs index files:', error);
+    return c.json({
+      success: false,
+      message: 'Error updating specs index files',
+      error: error instanceof Error ? error.message : String(error)
+    }, 500);
+  }
+});
+
+// Mount admin routes
+app.route('/admin', admin);
 
 // Mount API routes
 app.route('', api)

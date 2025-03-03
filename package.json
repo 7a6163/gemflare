@@ -1,15 +1,22 @@
 {
-	"name": "gemflare",
-	"scripts": {
-		"dev": "wrangler dev",
-		"deploy": "wrangler deploy --minify",
-		"cf-typegen": "wrangler types --env-interface CloudflareBindings"
-	},
-	"dependencies": {
-		"hono": "^4.7.2"
-	},
-	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20250224.0",
-		"wrangler": "^3.111.0"
-	}
+  "name": "gemflare",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20230419.0",
+    "typescript": "^5.0.4",
+    "wrangler": "^3.0.0"
+  },
+  "dependencies": {
+    "@hyrious/marshal": "^0.3.1",
+    "hono": "^3.3.1",
+    "js-yaml": "^4.1.0",
+    "tar-stream": "^3.1.7"
+  }
 }

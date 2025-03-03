@@ -91,11 +91,21 @@ Visit your Cloudflare Worker URL to access the web interface. Log in with the ad
 
 ### Using with Bundler
 
-Add this to your Gemfile:
+GemFlare now supports the Compact Index protocol, which is the modern way for RubyGems and Bundler to interact with gem servers.
+
+To use GemFlare with Bundler, add the following to your Gemfile:
 
 ```ruby
-source "https://your-gemflare-url.workers.dev"
+source "https://your-gemflare-url"
 ```
+
+Or configure Bundler to use your GemFlare server:
+
+```bash
+bundle config set --global source https://your-gemflare-url
+```
+
+For older versions of RubyGems, you can still use the traditional specs.4.8.gz endpoints, but we recommend using the Compact Index for better performance and compatibility.
 
 ### Using with RubyGems
 
@@ -110,7 +120,7 @@ gem sources --add https://your-gemflare-url.workers.dev
 Via command line:
 
 ```bash
-gem push your-gem-0.1.0.gem --host https://your-gemflare-url.workers.dev
+gem push your-gem-0.1.0.gem --host https://your-gemflare-instance.workers.dev
 ```
 
 You'll be prompted for your admin username and password.

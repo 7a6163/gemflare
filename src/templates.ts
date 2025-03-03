@@ -143,7 +143,7 @@ gem "${gem.name}", "${gem.version}"</pre>
 </div>
 `, isLoggedIn);
 
-export const uploadPage = () => layout(html`
+export const uploadPage = (currentUrl?: string) => layout(html`
 <div class="bg-white p-6 rounded-lg shadow-md">
   <h1 class="text-2xl font-bold mb-6">Upload Gem</h1>
 
@@ -159,7 +159,7 @@ export const uploadPage = () => layout(html`
   <div>
     <h2 class="text-lg font-semibold mb-2">Using with gem command</h2>
     <p class="mb-2">You can also push gems using the gem command:</p>
-    <pre class="bg-gray-100 p-3 rounded mt-2">gem push your-gem-0.1.0.gem --host https://your-gemflare-url.workers.dev</pre>
+    <pre class="bg-gray-100 p-3 rounded mt-2">gem push your-gem-0.1.0.gem --host ${currentUrl || 'https://your-gemflare-url.workers.dev'}</pre>
   </div>
 </div>
 `, true);
